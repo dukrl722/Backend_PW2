@@ -2,7 +2,7 @@ const mongoose = require('../../database');
 const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
-    login: {
+    email: {
         type: String,
         unique: true,
         required: true
@@ -19,11 +19,6 @@ const UserSchema = new mongoose.Schema({
     passwordResetExpires: {
         type: Date,
         select: false
-    },
-    email: {
-        type: String,
-        unique: true,
-        required: true
     },
     level: {
         type: String,
