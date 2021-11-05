@@ -1,20 +1,10 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const mailer = require('../../modules/mailer');
-
-const authConfig = require('../../config/auth');
 
 const User = require('../models/User');
 
 const router = express.Router();
-
-function generateToken(params = {}) {
-    return jwt.sign(params, authConfig.secret, {
-        expiresIn: 86400,
-    });
-}
 
 router.post('/register', async (request, response) => {
 
@@ -32,7 +22,6 @@ router.post('/register', async (request, response) => {
 
         response.send({ 
             user, 
-            token: generateToken({id: user.id}) 
         });
 
     } catch (err) {
@@ -44,6 +33,8 @@ router.post('/authenticate', async (request, response) => {
     const { email, password } = request.body;
 
     const user = await User.findOne({ email }).select('+password');
+
+    console.log(user);
 
     if (!user) {
         return response.status(400).send({ error: 'User not found' });
@@ -57,7 +48,6 @@ router.post('/authenticate', async (request, response) => {
 
     response.send({ 
         user, 
-        token: generateToken({id: user.id}) 
     });
 });
 
@@ -72,17 +62,9 @@ router.post('/forgot_password', async (request, response) => {
             return response.status(400).send({ error: 'User not found' });
         }
 
-        const token = crypto.randomBytes(20).toString('hex');
 
         const now = new Date();
         now.setHours(now.setHours() + 1);
-
-        await User.findByIdAndUpdate(user.id, {
-            '$set': {
-                passwordResetToken: token,
-                passwordResetExpires: now
-            }
-        });
 
         mailer.sendMail({
             to: email,
@@ -103,25 +85,14 @@ router.post('/forgot_password', async (request, response) => {
 });
 
 router.post('/reset_password', async (request, response) => {
-    const { email, token, password } = request.body;
+    const { email, password } = request.body;
 
     try {
 
-        const user = await User.findOne({ email })
-            .select('+passwordResetToken passwordResetExpires');
+        const user = await User.findOne({ email });
 
         if (!user) {
             return response.status(400).send({ error: 'User not found' });
-        }
-
-        if (token !== user.passwordResetToken) {
-            return response.status(400).send({ error: 'Token invalid' });
-        }
-
-        const now = new Date();
-
-        if (now > user.passwordResetExpires) {
-            return response.status(400).send({ error: 'Token expired, generate a new one' });
         }
 
         user.password = password;

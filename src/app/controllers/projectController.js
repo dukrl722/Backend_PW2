@@ -1,12 +1,9 @@
 const express = require('express');
-const authMiddleware = require('../middlewares/auth');
 
 const Event = require('../models/Event');
 const Task = require('../models/TaskEvent');
 
 const router = express.Router();
-
-router.use(authMiddleware);
 
 router.get('/', async (request, response) => {
     try {
